@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  teste-postgres-compose:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: "testando123"
+    ports:
+      - "5432:5432"  # Alterado para usar a porta padrão 5432
+    volumes:
+      - /home/rneto/Desenvolvimento/Docker-Compose/PostgreSQL:/var/lib/postgresql/data 
+    networks:
+      - postgres-compose-network
+      
+  teste-pgadmin-compose:
+    image: dpage/pgadmin4:latest  # Atualizando para a versão mais recente (latest)
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "emailteste@gmail.com"
+      PGADMIN_DEFAULT_PASSWORD: "testando123"
+    ports:
+      - "16543:80"
+    depends_on:
+      - teste-postgres-compose
+    networks:
+      - postgres-compose-network
+
+networks: 
+  postgres-compose-network:
+    driver: bridge
