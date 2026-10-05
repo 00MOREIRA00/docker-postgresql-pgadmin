@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Pauta Digital (local)",
+      "Group": "Laboratório",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "pauta",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

@@ -1,29 +1,56 @@
-version: '3'
+name: pauta-digital
 
 services:
-  teste-postgres-compose:
-    image: postgres
+  postgres:
+    image: postgres:18
+    container_name: pauta-postgres
     environment:
-      POSTGRES_PASSWORD: "testando123"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no arquivo .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pauta}
+    # pg_stat_statements precisa ser carregado na inicialização do servidor
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     ports:
-      - "5432:5432"  # Alterado para usar a porta padrão 5432
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - /home/rneto/Desenvolvimento/Docker-Compose/PostgreSQL:/var/lib/postgresql/data 
+      # No Postgres 18 o PGDATA fica em /var/lib/postgresql/18/docker,
+      # por isso o volume é montado no diretório pai.
+      - pgdata:/var/lib/postgresql
+      # Scripts executados apenas na primeira subida (volume vazio)
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
-      - postgres-compose-network
-      
-  teste-pgadmin-compose:
-    image: dpage/pgadmin4:latest  # Atualizando para a versão mais recente (latest)
-    environment:
-      PGADMIN_DEFAULT_EMAIL: "emailteste@gmail.com"
-      PGADMIN_DEFAULT_PASSWORD: "testando123"
-    ports:
-      - "16543:80"
-    depends_on:
-      - teste-postgres-compose
-    networks:
-      - postgres-compose-network
+      - pauta-net
 
-networks: 
-  postgres-compose-network:
+  pgadmin:
+    image: dpage/pgadmin4:9
+    container_name: pauta-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pautadigital.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?defina PGADMIN_PASSWORD no arquivo .env}
+      # Não pede a senha mestra do pgAdmin a cada sessão (uso local)
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "${PGADMIN_PORT:-16543}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      # Conexão com o Postgres já cadastrada (importada na primeira subida)
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pauta-net
+
+volumes:
+  pgdata:
+  pgadmin-data:
+
+networks:
+  pauta-net:
     driver: bridge

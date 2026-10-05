@@ -1,0 +1,17 @@
+# Variáveis de ambiente com senhas
+.env
+
+# Saídas locais (backups, relatórios)
+backups/
+out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
