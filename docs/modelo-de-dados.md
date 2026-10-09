@@ -1,6 +1,6 @@
 # Modelo de dados
 
-Este é o modelo-alvo. A migration que introduz cada parte está indicada.
+O schema é criado e evoluído pelas migrations do Flyway, em `migrations/`. A migration que introduz cada parte está indicada.
 
 ## Diagrama
 
@@ -11,9 +11,7 @@ erDiagram
     planos ||--o{ plano_publicacoes : inclui
     publicacoes ||--o{ plano_publicacoes : "faz parte"
     assinaturas ||--o{ historico_assinaturas : registra
-    assinaturas ||--o{ faturas : gera
-    faturas ||--o{ pagamentos : recebe
-    cupons ||--o{ assinaturas : aplicado
+    cupons |o--o{ assinaturas : "aplicado (V2)"
 
     assinantes {
         bigint id PK
@@ -47,7 +45,7 @@ erDiagram
         bigint id PK
         bigint assinante_id FK
         smallint plano_id FK
-        int cupom_id FK
+        int cupom_id FK "V2"
         status_assinatura status
         date iniciada_em
         date periodo_fim
@@ -61,23 +59,6 @@ erDiagram
         jsonb detalhes
         timestamptz ocorrido_em
     }
-    faturas {
-        bigint id PK
-        bigint assinatura_id FK
-        date competencia
-        int valor_centavos
-        int desconto_centavos
-        date vencimento
-        status_fatura status
-    }
-    pagamentos {
-        bigint id PK
-        bigint fatura_id FK
-        metodo_pagamento metodo
-        int valor_centavos
-        timestamptz pago_em
-        text gateway_ref
-    }
     cupons {
         int id PK
         text codigo UK
@@ -89,52 +70,43 @@ erDiagram
     }
 ```
 
-A tabela `auditoria` (V2) fica fora do diagrama porque não tem FK: ela registra qualquer tabela auditada.
-
 ## Tipos enumerados
 
-| Tipo | Valores |
-|------|---------|
-| `periodicidade` | `mensal`, `anual` |
-| `tipo_publicacao` | `revista`, `newsletter` |
-| `status_assinatura` | `trial`, `ativa`, `inadimplente`, `cancelada` |
-| `motivo_cancelamento` | `preco`, `conteudo`, `pouco_uso`, `inadimplencia`, `trial_nao_convertido`, `outro` |
-| `status_fatura` | `aberta`, `paga`, `vencida`, `estornada` |
-| `metodo_pagamento` | `cartao`, `pix`, `boleto` |
-| `tipo_desconto` *(V3)* | `percentual`, `valor_fixo` |
+| Tipo | Valores | Migration |
+|------|---------|-----------|
+| `periodicidade` | `mensal`, `anual` | V1 |
+| `tipo_publicacao` | `revista`, `newsletter` | V1 |
+| `status_assinatura` | `trial`, `ativa`, `inadimplente`, `cancelada` | V1 |
+| `motivo_cancelamento` | `preco`, `conteudo`, `pouco_uso`, `inadimplencia`, `trial_nao_convertido`, `outro` | V1 |
+| `tipo_desconto` | `percentual`, `valor_fixo` | V2 |
 
 ## Restrições importantes
 
-| Regra de negócio | Como o banco garante |
-|------------------|----------------------|
-| E-mail único, sem diferenciar maiúsculas de minúsculas | Tipo `citext` (extensão) + `UNIQUE` |
-| Uma assinatura ativa por assinante | Índice único **parcial**: `UNIQUE (assinante_id) WHERE status <> 'cancelada'` |
-| Cancelada precisa de data e motivo | `CHECK ((status = 'cancelada') = (cancelada_em IS NOT NULL AND motivo IS NOT NULL))` |
-| Valores não negativos | `CHECK (valor_centavos >= 0)` |
-| Desconto não maior que o valor | `CHECK (desconto_centavos <= valor_centavos)` |
-| UF válida | `CHECK (uf ~ '^[A-Z]{2}$')` |
-| Uma fatura por assinatura e competência | `UNIQUE (assinatura_id, competencia)` |
+| Regra de negócio | Como o banco garante | Migration |
+|------------------|----------------------|-----------|
+| E-mail único, sem diferenciar maiúsculas de minúsculas | Tipo `citext` (extensão) + `UNIQUE` | V1 |
+| Uma assinatura em andamento por assinante | Índice único **parcial**: `UNIQUE (assinante_id) WHERE status <> 'cancelada'` | V1 |
+| Data e motivo de cancelamento existem se, e somente se, a assinatura está cancelada | `CHECK ((status = 'cancelada') = (cancelada_em IS NOT NULL) AND (status = 'cancelada') = (motivo IS NOT NULL))` | V1 |
+| Preço não negativo | `CHECK (preco_centavos >= 0)` | V1 |
+| Todo plano tem ao menos 1 perfil | `CHECK (max_perfis >= 1)` | V1 |
+| UF no formato de duas letras maiúsculas | `CHECK (uf ~ '^[A-Z]{2}$')` | V1 |
+| Código de plano único | `UNIQUE (codigo)` | V1 |
 
-## Objetos além de tabelas
+## Dados fixos
 
-| Objeto | Tipo | Migration | Para quê |
-|--------|------|-----------|----------|
-| `fn_auditoria()` | Função + triggers | V2 | Grava antes e depois em `auditoria` (`jsonb`), com usuário e timestamp |
-| `fn_historico_assinatura()` | Trigger | V2 | Registra mudanças de status e de plano em `historico_assinaturas` |
-| `vw_assinantes_ativos` | View | V2 | Assinante + plano atual, para a operação |
-| `vw_receita_mensal` | View | V2 | Faturado *versus* recebido por competência |
-| `mv_mrr_mensal` | Materialized view | V2 | MRR por mês, atualizada pelo script (`REFRESH ... CONCURRENTLY`) |
-| Índices de performance | Índices | V4 | Criados a partir dos planos de execução de `queries/04` |
-| Roles e políticas | `GRANT` + RLS | V5 | Privilégio mínimo e filtro por UF no atendimento |
+Carregados pelo V1, porque fazem parte do negócio e precisam existir em qualquer banco:
+
+- **4 planos:** Essencial, Completo, Completo Anual e Família (preços em centavos, ver [caso de negócio](caso-de-negocio.md)).
+- **8 publicações:** uma revista e uma newsletter por categoria (economia, tecnologia, cultura e esportes).
+- **28 ligações plano × publicação:** o Essencial inclui só as newsletters; os demais incluem todas.
 
 ## Evolução por migrations
 
-| Versão | Arquivo | Conteúdo |
-|--------|---------|----------|
-| V1 | `V1__schema_inicial.sql` | Extensões, enums, assinantes, planos, publicações, assinaturas, histórico |
-| V2 | `V2__faturas_pagamentos_auditoria.sql` | Faturas, pagamentos, auditoria, triggers, views |
-| V3 | `V3__cupons.sql` | Tabela de cupons e coluna `cupom_id` em assinaturas, sem perder dados existentes |
-| V4 | `V4__indices_performance.sql` | Índices justificados por `EXPLAIN ANALYZE` |
-| V5 | `V5__roles_rls.sql` | Roles `app_pauta`, `financeiro`, `editorial`, `atendimento` e políticas de RLS |
+| Versão | Arquivo | Conteúdo | Status |
+|--------|---------|----------|--------|
+| V1 | `V1__schema_inicial.sql` | Extensão `citext`, ENUMs, as 6 tabelas, constraints, índice parcial e carga dos dados fixos | ✅ Aplicada |
+| V2 | `V2__cupons.sql` | Tabela `cupons` e coluna `cupom_id` em `assinaturas`, aplicada num banco **com dados**, sem perdê-los | ⬜ A fazer |
 
 Regra de ouro: **migration aplicada não se edita**. Correções entram como uma nova versão.
+
+> A tabela `historico_assinaturas` existe desde o V1, mas não há trigger que a preencha: automatizar o histórico ficou fora do escopo do projeto.

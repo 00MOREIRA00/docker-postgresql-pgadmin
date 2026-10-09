@@ -31,7 +31,7 @@ services:
     image: dpage/pgadmin4:9
     container_name: pauta-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pautadigital.com}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?defina PGADMIN_PASSWORD no arquivo .env}
       # Não pede a senha mestra do pgAdmin a cada sessão (uso local)
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
@@ -41,6 +41,23 @@ services:
       - pgadmin-data:/var/lib/pgadmin
       # Conexão com o Postgres já cadastrada (importada na primeira subida)
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pauta-net
+
+  flyway:
+    image: flyway/flyway:11.20.3
+    container_name: pauta-flyway
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pauta}
+      FLYWAY_USER: ${POSTGRES_USER:-postgres}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no arquivo .env}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+    command: migrate
+    volumes:
+      - ./migrations:/flyway/sql:ro
     depends_on:
       postgres:
         condition: service_healthy
