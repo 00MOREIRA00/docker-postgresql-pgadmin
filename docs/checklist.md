@@ -16,7 +16,7 @@ Referências: [caso de negócio](caso-de-negocio.md) · [modelo de dados](modelo
 
 ## Pendências da v0.2.0
 
-- [ ] Decidir o destino da pasta `wiki/` no repositório principal: remover (`git rm -r wiki`) ou manter como cópia da wiki
+- [x] Remover a cópia local da pasta `wiki/` do repositório principal; a Wiki do GitHub permanece separada
 - [x] Trocar *a publicar* pela data nas páginas **Histórico de versões** e **v0.2.0 Correções da base** da wiki
 
 ---
