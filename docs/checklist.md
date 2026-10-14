@@ -8,7 +8,7 @@ Referências: [caso de negócio](caso-de-negocio.md) · [modelo de dados](modelo
 |--------|--------|--------|
 | v0.1.0 | Versão original | ✅ Publicada |
 | v0.2.0 | Correções da base | ✅ Publicada |
-| v0.3.0 | Flyway e schema inicial | Publicada |
+| v0.3.0 | Flyway e schema inicial | 🔄 Em andamento |
 | v0.4.0 | Evoluir o schema com dados | ⬜ A fazer |
 | v1.0.0 | Backup e fechamento | ⬜ A fazer |
 
@@ -16,8 +16,8 @@ Referências: [caso de negócio](caso-de-negocio.md) · [modelo de dados](modelo
 
 ## Pendências da v0.2.0
 
-- [x] Remover a cópia local da pasta `wiki/` do repositório principal; a Wiki do GitHub permanece separada
-- [x] Trocar *a publicar* pela data nas páginas **Histórico de versões** e **v0.2.0 Correções da base** da wiki
+- [ ] Decidir o destino da pasta `wiki/` no repositório principal: remover (`git rm -r wiki`) ou manter como cópia da wiki
+- [ ] Trocar *a publicar* pela data nas páginas **Histórico de versões** e **v0.2.0 Correções da base** da wiki
 
 ---
 
@@ -36,10 +36,10 @@ Referências: [caso de negócio](caso-de-negocio.md) · [modelo de dados](modelo
 
 A lição central do Flyway: mudar um banco que **já tem dados**, sem `down -v`.
 
-- [ ] Script `scripts/dados_exemplo.sql` com `generate_series`: assinantes e assinaturas de exemplo
-- [ ] Migration `V2__cupons.sql`: tabela `cupons` e coluna `cupom_id` em `assinaturas`
-- [ ] Aplicar a V2 com `docker compose up` (sem `down -v`) e confirmar que os dados continuam lá
-- [ ] Ver as duas versões na `flyway_schema_history` e provocar o erro de checksum editando o V1
+- [x] Script `scripts/dados_exemplo.sql` com `generate_series`: assinantes e assinaturas de exemplo
+- [x] Migration `V2__cupons.sql`: tabela `cupons` e coluna `cupom_id` em `assinaturas`
+- [x] Aplicar a V2 com `docker compose up` (sem `down -v`) e confirmar que os dados continuam lá
+- [x] Ver as duas versões na `flyway_schema_history` e provocar o erro de checksum editando o V1
 - [ ] Release v0.4.0
 
 ---

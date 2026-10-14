@@ -153,4 +153,4 @@ Detalhes de cada versão: [docs/checklist.md](docs/checklist.md).
 
 ## Aviso
 
-Projeto de estudo. Defina suas credenciais no `.env`; o `.env.example` não contém senhas. Esta configuração é destinada ao uso local.
+Projeto de estudo. As credenciais do `.env.example` são apenas para uso local — não use esta configuração em produção.

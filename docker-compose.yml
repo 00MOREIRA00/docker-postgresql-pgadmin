@@ -31,7 +31,7 @@ services:
     image: dpage/pgadmin4:9
     container_name: pauta-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pautadigital.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?defina PGADMIN_PASSWORD no arquivo .env}
       # Não pede a senha mestra do pgAdmin a cada sessão (uso local)
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
