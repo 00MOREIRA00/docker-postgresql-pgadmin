@@ -19,6 +19,8 @@ Itens da [checklist](../checklist.md) (v0.4.0):
 
 O script **não é uma migration**. Ele roda sob demanda, começa com `TRUNCATE` e pode ser executado quantas vezes for preciso. Migrations mudam a *estrutura*; este script só preenche dados para testar.
 
+O script usa `BEGIN`/`COMMIT` para executar a limpeza e os inserts na mesma transação. Com `ON_ERROR_STOP=1`, um erro encerra o script e a conexão desfaz também o `TRUNCATE`. A execução bem-sucedida substitui os dados de assinantes, assinaturas e seu histórico; use apenas no laboratório.
+
 ### O problema que aconteceu: dados que o banco aceitou, mas o negócio não
 
 A primeira versão calculava o fim do período assim:
@@ -401,4 +403,4 @@ Entre um teste e outro, os containers foram removidos com `docker compose down` 
 
 ## Próximo passo
 
-Os itens técnicos da v0.4.0 estão concluídos na [checklist](../checklist.md). Para fechar a versão, falta atualizar o README e o [modelo de dados](../modelo-de-dados.md) (V2 como feita, `codigo` do cupom como `citext`) e publicar a release v0.4.0.
+Os itens da v0.4.0 estão concluídos na [checklist](../checklist.md), e a [release v0.4.0](https://github.com/00MOREIRA00/docker-postgresql-pgadmin/releases/tag/v0.4.0) está publicada. O README e o [modelo de dados](../modelo-de-dados.md) descrevem a V2. A próxima etapa é [backup e restore](04%20-%20backup%20e%20restore.md); a publicação da v1.0.0 permanece pendente.

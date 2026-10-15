@@ -8,16 +8,16 @@ Referências: [caso de negócio](caso-de-negocio.md) · [modelo de dados](modelo
 |--------|--------|--------|
 | v0.1.0 | Versão original | ✅ Publicada |
 | v0.2.0 | Correções da base | ✅ Publicada |
-| v0.3.0 | Flyway e schema inicial | 🔄 Em andamento |
-| v0.4.0 | Evoluir o schema com dados | ⬜ A fazer |
+| v0.3.0 | Flyway e schema inicial | ✅ Publicada |
+| v0.4.0 | Evoluir o schema com dados | ✅ Publicada |
 | v1.0.0 | Backup e fechamento | ⬜ A fazer |
 
 ---
 
 ## Pendências da v0.2.0
 
-- [ ] Decidir o destino da pasta `wiki/` no repositório principal: remover (`git rm -r wiki`) ou manter como cópia da wiki
-- [ ] Trocar *a publicar* pela data nas páginas **Histórico de versões** e **v0.2.0 Correções da base** da wiki
+- [x] Remover a cópia local da pasta `wiki/` do repositório principal; a Wiki do GitHub permanece separada
+- [x] Trocar *a publicar* pela data nas páginas **Histórico de versões** e **v0.2.0 Correções da base** da wiki
 
 ---
 
@@ -37,18 +37,20 @@ Referências: [caso de negócio](caso-de-negocio.md) · [modelo de dados](modelo
 A lição central do Flyway: mudar um banco que **já tem dados**, sem `down -v`.
 
 - [x] Script `scripts/dados_exemplo.sql` com `generate_series`: assinantes e assinaturas de exemplo
+- [x] Carga em transação: erro proposital após a limpeza desfaz o `TRUNCATE` e preserva os dados anteriores
 - [x] Migration `V2__cupons.sql`: tabela `cupons` e coluna `cupom_id` em `assinaturas`
 - [x] Aplicar a V2 com `docker compose up` (sem `down -v`) e confirmar que os dados continuam lá
 - [x] Ver as duas versões na `flyway_schema_history` e provocar o erro de checksum editando o V1
-- [ ] Release v0.4.0
+- [x] Release v0.4.0
 
 ---
 
 ## v1.0.0 — Backup e fechamento
 
-- [ ] Backup do banco com `pg_dump`
-- [ ] Restore num banco limpo com `pg_restore` e conferir os dados
-- [ ] README final: remover o aviso "em construção"
+- [x] Backup do banco com `pg_dump`
+- [x] Restore num banco limpo com `pg_restore` e conferir os dados
+- [x] Alternativa para PowerShell com `pg_dump -f` e `docker compose cp`, sem redirecionar bytes binários
+- [x] README final: remover o aviso "em construção"
 - [ ] Release v1.0.0
 
 ---

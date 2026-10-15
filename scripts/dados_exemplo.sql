@@ -1,6 +1,9 @@
 -- Dados de exemplo: assinantes e assinaturas.
 -- Não é migration: roda sob demanda e pode ser executado de novo (começa limpando as tabelas).
 
+-- Limpeza e carga são atômicas: um erro desfaz também o TRUNCATE.
+BEGIN;
+
 TRUNCATE assinaturas, assinantes RESTART IDENTITY CASCADE;
 
 -- 1. Assinantes, criados ao longo dos últimos 2 anos
@@ -52,3 +55,5 @@ FROM (
     ) AS a
     JOIN planos p ON p.codigo = a.plano
 ) AS s;
+
+COMMIT;

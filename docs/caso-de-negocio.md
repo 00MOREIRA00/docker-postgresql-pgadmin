@@ -2,102 +2,81 @@
 
 > Empresa fictícia criada para este laboratório. Qualquer semelhança com empresas reais é coincidência.
 
+O caso existe para dar contexto ao banco: as tabelas, as constraints e as migrations representam regras de um negócio, e não exemplos soltos. O foco do projeto continua sendo Docker, PostgreSQL e Flyway.
+
 ## A empresa
 
-A **Pauta Digital** é uma plataforma brasileira de assinatura de conteúdo. Com uma assinatura, o leitor acessa um catálogo de **publicações digitais**: revistas (edições mensais) e newsletters (envios semanais) sobre economia, tecnologia, cultura e esportes.
+A **Pauta Digital** é uma plataforma de assinatura de conteúdo. Com uma assinatura, o leitor acessa um catálogo de **publicações digitais**: revistas e newsletters sobre economia, tecnologia, cultura e esportes.
 
-A empresa começou pequena, controlando assinaturas em planilhas. Com o crescimento, migrou para PostgreSQL. O banco precisa sustentar a operação (cobrança, cancelamentos, acesso) **e** responder às perguntas do negócio.
+O banco guarda planos, publicações, assinantes, assinaturas e cupons de desconto.
 
 ## Planos
 
 | Plano | Periodicidade | Preço | Publicações | Perfis |
 |-------|---------------|-------|-------------|--------|
-| Essencial | Mensal | R$ 19,90 | Newsletters | 1 |
+| Essencial | Mensal | R$ 19,90 | Só as newsletters | 1 |
 | Completo | Mensal | R$ 39,90 | Todas | 1 |
 | Completo Anual | Anual | R$ 399,00 | Todas | 1 |
 | Família | Mensal | R$ 59,90 | Todas | até 4 |
 
-Os preços são guardados em **centavos** (`integer`), nunca em `float`.
+Os planos, as 8 publicações (uma revista e uma newsletter por categoria) e a ligação entre eles são carregados pela migration V1. Os preços são guardados em **centavos** (`integer`), nunca em `float`.
 
-## Ciclo de vida de uma assinatura
+## Status de uma assinatura
 
 ```mermaid
 stateDiagram-v2
     [*] --> trial: cadastro
-    trial --> ativa: 1º pagamento
-    trial --> cancelada: não converteu em 7 dias
-    ativa --> ativa: renovação paga
-    ativa --> inadimplente: fatura vencida há 15 dias
-    inadimplente --> ativa: pagamento regularizado
-    inadimplente --> cancelada: 30 dias sem pagamento
+    trial --> ativa: pagou
+    trial --> cancelada: não converteu
+    ativa --> inadimplente: ciclo venceu sem pagamento
+    inadimplente --> ativa: regularizou
+    inadimplente --> cancelada: inadimplência
     ativa --> cancelada: cancelamento voluntário
     cancelada --> [*]
 ```
 
-## Regras de negócio
+O banco guarda os quatro status (`trial`, `ativa`, `inadimplente`, `cancelada`) e os motivos de cancelamento. As **transições não são automáticas**: não há cobrança nem rotina que mude o status. O diagrama mostra o significado de cada status, e os dados de exemplo são gerados de forma coerente com ele.
 
-1. **Uma assinatura ativa por assinante.** Um assinante pode ter várias assinaturas no histórico, mas só uma com status `trial`, `ativa` ou `inadimplente` por vez.
-2. **Trial de 7 dias.** Toda assinatura nova começa em `trial`. Sem pagamento ao fim do período, é cancelada com o motivo `trial_nao_convertido`.
-3. **Fatura por ciclo.** Na renovação, é gerada uma fatura com vencimento em 5 dias. Status: `aberta`, `paga`, `vencida`, `estornada`.
-4. **Inadimplência.** Uma fatura vencida há mais de 15 dias move a assinatura para `inadimplente`. Depois de 30 dias, ela é cancelada com o motivo `inadimplencia`.
-5. **Troca de plano.** Vale a partir do próximo ciclo e fica registrada no histórico da assinatura.
-6. **Cancelamento voluntário.** Exige um motivo (`preco`, `conteudo`, `pouco_uso`, `outro`). O acesso continua até o fim do período já pago.
-7. **Cupons** *(a partir da V3)*. Percentual ou valor fixo, com validade e limite de usos. Aplicam-se às N primeiras faturas.
-8. **Auditoria.** Toda alteração em assinaturas, faturas e pagamentos é registrada automaticamente (quem, quando, antes e depois).
+## Regras garantidas pelo banco
 
-## Áreas e acessos
+Estas regras são impostas pelo próprio PostgreSQL. Um dado que as viole é recusado, venha de onde vier.
 
-| Área | Precisa de | Não pode ver |
-|------|-----------|--------------|
-| **Aplicação** (`app_pauta`) | Leitura e escrita nas tabelas operacionais | Tabela de auditoria (só insere via trigger) |
-| **Financeiro** (`financeiro`) | Faturas, pagamentos, views de receita | Dados pessoais além de nome e e-mail |
-| **Editorial** (`editorial`) | Publicações e engajamento por plano | Qualquer dado financeiro |
-| **Atendimento** (`atendimento`) | Assinantes e assinaturas **da sua região (UF)** | Assinantes de outras regiões — garantido por **RLS** |
+| Regra | Como o banco garante | Migration |
+|-------|----------------------|-----------|
+| E-mail único, sem diferenciar maiúsculas de minúsculas | `citext` + `UNIQUE` em `assinantes.email` | V1 |
+| UF válida (duas letras maiúsculas) | `CHECK (uf ~ '^[A-Z]{2}$')` | V1 |
+| Preços e valores não negativos | `CHECK` nas colunas de valor | V1 |
+| Uma assinatura em andamento por assinante (`trial`, `ativa` ou `inadimplente`) | Índice único parcial `WHERE status <> 'cancelada'` | V1 |
+| Assinatura cancelada sempre com data e motivo, e só ela | `CHECK` combinando `status`, `cancelada_em` e `motivo` | V1 |
+| Código de cupom único, sem diferenciar maiúsculas de minúsculas | `citext` + `UNIQUE` em `cupons.codigo` | V2 |
+| Desconto percentual de no máximo 100% | `CHECK` nomeada `ck_cupons_percentual_max` | V2 |
+| Assinatura só aponta para cupom existente | Chave estrangeira `assinaturas.cupom_id` | V2 |
 
-## Perguntas de negócio
+## Cupons
 
-Cada pergunta tem uma consulta correspondente em `queries/`.
+Adicionados pela V2, num banco que já tinha dados. Um cupom tem:
 
-### Operação
+- **Tipo:** `percentual` ou `valor_fixo` (em centavos).
+- **Ciclos:** quantas cobranças recebem o desconto.
+- **Validade** e **limite de usos**, opcionais.
 
-1. Quantos assinantes ativos temos hoje, por plano?
-2. Quais faturas vencem nos próximos 7 dias?
-3. Quem está inadimplente, há quantos dias e com quanto em aberto?
-4. Qual o histórico completo de um assinante (assinaturas, trocas de plano, pagamentos)?
+Cupons iniciais: `BEMVINDO10` (10%), `ANUAL50` (R$ 50,00) e `BLACKFRIDAY` (50% por 3 ciclos, válido até 30/11/2026, até 1.000 usos).
 
-### Receita
+Validade, limite de usos e ciclos são **registrados**, mas não aplicados automaticamente: não há rotina de cobrança que os consulte.
 
-5. Qual o **MRR** atual? (Planos anuais entram como 1/12 do valor.)
-6. Como o MRR evoluiu mês a mês e qual foi o crescimento percentual?
-7. Quanto foi faturado *versus* recebido por mês?
-8. Qual o **ticket médio** por plano e por método de pagamento?
+## Dados de exemplo
 
-### Retenção
+O script `scripts/dados_exemplo.sql` gera, com `generate_series`, **500 assinantes** com uma assinatura cada, criados ao longo dos últimos dois anos:
 
-9. Qual a **taxa de churn mensal**, por plano?
-10. **Coorte:** dos assinantes que entraram em cada mês, quantos % seguem ativos em M+1, M+3, M+6?
-11. Quais os principais motivos de cancelamento, por plano?
-12. Qual a **taxa de conversão do trial**?
-13. Qual o **LTV médio** por plano?
+| Status | Como é gerado |
+|--------|---------------|
+| `trial` | Só quem entrou nos últimos 7 dias; período de 7 dias |
+| `ativa` | Cerca de 75% dos demais; ciclo atual ainda vigente |
+| `inadimplente` | Cerca de 10%; ciclo vencido |
+| `cancelada` | Cerca de 15%; com data e motivo; período de 30 ou 365 dias, conforme o plano |
 
-### Marketing *(a partir da V3)*
+O script não é migration: roda sob demanda e começa limpando as tabelas. Como usar: seção **Dados de exemplo** do [README](../README.md#dados-de-exemplo).
 
-14. Quais cupons trouxeram mais assinantes?
-15. Assinantes que entraram com cupom cancelam mais cedo do que os que pagaram preço cheio?
+## Fora do escopo
 
-### Performance
-
-16. Quais consultas mais consomem tempo no banco (`pg_stat_statements`)?
-17. Qual o ganho de tempo na consulta X depois de criar o índice Y (`EXPLAIN ANALYZE` antes e depois)?
-
-## Volume de dados esperado
-
-O seed padrão gera um volume suficiente para que índices e planos de execução façam diferença:
-
-| Entidade | Volume aproximado |
-|----------|-------------------|
-| Assinantes | 5.000 (configurável) |
-| Assinaturas | ~7.000 (inclui reassinaturas) |
-| Faturas | ~60.000 (até 24 meses de histórico) |
-| Pagamentos | ~55.000 |
-| Registros de auditoria | ~150.000 |
+A tabela `historico_assinaturas` existe desde a V1, mas nenhuma rotina a preenche. Cobrança, faturas, auditoria, controle de acesso por área e consultas analíticas ficaram fora do projeto, que se concentra na infraestrutura do banco.

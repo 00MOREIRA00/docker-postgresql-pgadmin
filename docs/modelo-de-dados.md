@@ -61,7 +61,7 @@ erDiagram
     }
     cupons {
         int id PK
-        text codigo UK
+        citext codigo UK
         tipo_desconto tipo
         int valor
         smallint ciclos
@@ -91,21 +91,37 @@ erDiagram
 | Todo plano tem ao menos 1 perfil | `CHECK (max_perfis >= 1)` | V1 |
 | UF no formato de duas letras maiúsculas | `CHECK (uf ~ '^[A-Z]{2}$')` | V1 |
 | Código de plano único | `UNIQUE (codigo)` | V1 |
+| Código de cupom único, sem diferenciar maiúsculas de minúsculas | Tipo `citext` + `UNIQUE` | V2 |
+| Desconto percentual de no máximo 100% | `CONSTRAINT ck_cupons_percentual_max CHECK (tipo <> 'percentual' OR valor <= 100)` | V2 |
+| Valor do cupom positivo, ao menos 1 ciclo, limite de usos positivo | `CHECK (valor > 0)`, `CHECK (ciclos >= 1)`, `CHECK (limite_usos > 0)` | V2 |
+| Assinatura só aponta para cupom existente | Chave estrangeira `cupom_id REFERENCES cupons (id)`, aceitando `NULL` (sem cupom) | V2 |
+
+## Índices
+
+Além dos índices que o Postgres cria sozinho para `PRIMARY KEY` e `UNIQUE`:
+
+| Índice | Tabela | Para quê | Migration |
+|--------|--------|----------|-----------|
+| `uq_assinaturas_ativa_por_assinante` | `assinaturas (assinante_id) WHERE status <> 'cancelada'` | Garante uma assinatura em andamento por assinante | V1 |
+| `ix_assinaturas_cupom_id` | `assinaturas (cupom_id)` | O Postgres não indexa chaves estrangeiras automaticamente; evita ler a tabela inteira para achar as assinaturas de um cupom | V2 |
 
 ## Dados fixos
 
-Carregados pelo V1, porque fazem parte do negócio e precisam existir em qualquer banco:
+Carregados pelas migrations, porque fazem parte do negócio e precisam existir em qualquer banco:
 
 - **4 planos:** Essencial, Completo, Completo Anual e Família (preços em centavos, ver [caso de negócio](caso-de-negocio.md)).
 - **8 publicações:** uma revista e uma newsletter por categoria (economia, tecnologia, cultura e esportes).
 - **28 ligações plano × publicação:** o Essencial inclui só as newsletters; os demais incluem todas.
+- **3 cupons** (V2): `BEMVINDO10` (10%), `ANUAL50` (R$ 50,00) e `BLACKFRIDAY` (50% por 3 ciclos, até 30/11/2026, até 1.000 usos).
+
+Os assinantes e as assinaturas **não** são dados fixos: vêm do script `scripts/dados_exemplo.sql`, executado sob demanda.
 
 ## Evolução por migrations
 
 | Versão | Arquivo | Conteúdo | Status |
 |--------|---------|----------|--------|
 | V1 | `V1__schema_inicial.sql` | Extensão `citext`, ENUMs, as 6 tabelas, constraints, índice parcial e carga dos dados fixos | ✅ Aplicada |
-| V2 | `V2__cupons.sql` | Tabela `cupons` e coluna `cupom_id` em `assinaturas`, aplicada num banco **com dados**, sem perdê-los | ⬜ A fazer |
+| V2 | `V2__cupons.sql` | ENUM `tipo_desconto`, tabela `cupons`, coluna `cupom_id` e índice em `assinaturas` e carga dos cupons, aplicada num banco **com dados**, sem perdê-los | ✅ Aplicada |
 
 Regra de ouro: **migration aplicada não se edita**. Correções entram como uma nova versão.
 

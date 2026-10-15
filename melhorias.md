@@ -1,5 +1,7 @@
 # Melhorias — docker-postgresql-pgadmin
 
+> Diagnóstico histórico, anterior à implementação do laboratório Pauta Digital. As propostas abaixo registram as ideias iniciais; o escopo atual e seu andamento estão em [docs/checklist.md](docs/checklist.md). O projeto já possui schema, dados de exemplo, migrations V1/V2 e documentação de backup e restore. API, auditoria, consultas analíticas e roles/RLS ficaram fora do escopo atual.
+
 Revisão do estado atual do repositório (`docker-compose.yml` + `README.md`) e próximos passos para transformá-lo em um caso prático que demonstre conhecimento em PostgreSQL.
 
 ## 1. Problemas que quebram ou atrapalham
@@ -19,7 +21,7 @@ Revisão do estado atual do repositório (`docker-compose.yml` + `README.md`) e 
 
 ## 3. O que falta para o objetivo (mostrar conhecimento)
 
-Hoje o projeto sobe apenas um banco vazio. Proposta de estrutura com um caso completo:
+Na revisão inicial, o projeto subia apenas um banco vazio. Esta era a proposta de estrutura com um caso completo (substituída pela separação atual entre `initdb/`, `migrations/` e `scripts/`):
 
 ```
 initdb/

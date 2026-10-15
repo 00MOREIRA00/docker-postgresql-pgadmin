@@ -2,15 +2,17 @@
 
 Registro curto das escolhas de arquitetura e do motivo de cada uma, no formato de ADR (*Architecture Decision Record*) simplificado.
 
+A numeração é estável: uma decisão nunca muda de número, para não quebrar as referências nos documentos de [criando/](criando/). D3 e D4 foram descartadas quando o escopo do projeto foi reduzido.
+
 ---
 
 ## D1 — Usar um caso de negócio fictício
 
-**Contexto:** um compose que só sobe Postgres e pgAdmin mostra conhecimento de Docker, não de banco de dados.
+**Contexto:** um compose que só sobe Postgres e pgAdmin mostra conhecimento de Docker, mas não dá motivo para usar os recursos do banco.
 
-**Decisão:** construir o repositório em torno de uma empresa fictícia (Pauta Digital), com regras de negócio e perguntas a responder.
+**Decisão:** dar ao banco o contexto de uma empresa fictícia, a [Pauta Digital](caso-de-negocio.md), com regras de negócio simples.
 
-**Consequência:** cada recurso do Postgres aparece resolvendo um problema concreto, em vez de ser um exemplo solto.
+**Consequência:** as constraints, o índice parcial e as migrations representam regras concretas ("um e-mail por assinante", "uma assinatura em andamento"), em vez de exemplos soltos. O caso é só contexto: o foco continua sendo Docker, PostgreSQL e Flyway.
 
 ---
 
@@ -22,30 +24,10 @@ Registro curto das escolhas de arquitetura e do motivo de cada uma, no formato d
 
 **Alternativas consideradas:**
 - *dbmate*: mais leve, mas menos conhecido.
-- *Alembic*: acoplaria as migrations ao Python.
+- *Alembic*: exigiria Python no projeto só para as migrations.
 - *Só `initdb`*: não mostra evolução de schema.
 
-**Consequência:** o histórico de migrations conta a história do banco. `initdb/` fica restrito ao que precisa existir antes de tudo (extensões, configuração).
-
----
-
-## D3 — Script Python em vez de backend
-
-**Contexto:** uma API traria rotas, autenticação, validação e testes. Seria muita superfície fora do foco, que é o banco.
-
-**Decisão:** um script Python de linha de comando, com três comandos: `seed`, `simular` e `relatorio`. Ele roda em container próprio sob o profile `tools`, então ninguém precisa instalar Python na máquina.
-
-**Consequência:** o Python serve ao banco (gera dados, exercita triggers, consome consultas) sem roubar o protagonismo. Se um dia fizer sentido ter uma API, ela pode ir para outro repositório e usar este banco.
-
----
-
-## D4 — Seed em Python; `generate_series` como demonstração
-
-**Contexto:** dados realistas (nomes, e-mails, distribuição de cancelamentos ao longo do tempo, sazonalidade) são trabalhosos em SQL puro.
-
-**Decisão:** o seed principal fica no Python, com Faker (`pt_BR`) e `psycopg` usando `COPY` para carga rápida. O `generate_series` aparece em `queries/` como técnica para gerar massa de teste.
-
-**Consequência:** os dados têm comportamento plausível, então as análises de churn e coorte mostram padrões, não ruído. O SQL de geração continua representado.
+**Consequência:** o histórico de migrations conta a história do banco, e a V2 pôde ser aplicada sobre um banco com dados, sem perdê-los. `initdb/` fica restrito ao que precisa existir antes de tudo (a extensão `pg_stat_statements`).
 
 ---
 
@@ -53,15 +35,15 @@ Registro curto das escolhas de arquitetura e do motivo de cada uma, no formato d
 
 **Contexto:** `postgres` sem tag passa a apontar para uma versão maior nova sem aviso. O Postgres 18, por exemplo, mudou o diretório de dados (`PGDATA`).
 
-**Decisão:** fixar `postgres:18`, a versão do pgAdmin e a do Flyway. Usar volumes nomeados, nunca caminhos absolutos da máquina.
+**Decisão:** fixar `postgres:18`, `dpage/pgadmin4:9` e `flyway/flyway:11.20.3`. Usar volumes nomeados, nunca caminhos absolutos da máquina.
 
-**Consequência:** o projeto se comporta igual em qualquer máquina e em qualquer data. Atualizar a versão vira uma decisão explícita.
+**Consequência:** as tags evitam mudanças automáticas de versão maior. `postgres:18` e `dpage/pgadmin4:9` ainda recebem atualizações dentro dessas versões, e tags podem ser republicadas. Para reproduzir exatamente os mesmos artefatos, seria necessário fixar as imagens por digest (`sha256`). O projeto mantém tags para acompanhar correções dessas versões.
 
 ---
 
 ## D6 — Dinheiro em centavos
 
-**Decisão:** valores monetários em `integer` (centavos). A formatação acontece só na apresentação.
+**Decisão:** valores monetários em `integer` (centavos): `preco_centavos` nos planos e `valor` dos cupons do tipo `valor_fixo`. A formatação acontece só na apresentação.
 
 **Motivo:** `float` gera erros de arredondamento. `numeric` funcionaria, mas `integer` deixa as regras de cálculo explícitas e é mais rápido.
 
@@ -69,6 +51,26 @@ Registro curto das escolhas de arquitetura e do motivo de cada uma, no formato d
 
 ## D7 — Credenciais em `.env`
 
-**Decisão:** senhas e portas ficam em `.env`, que está no `.gitignore`. O repositório versiona só o `.env.example`.
+**Decisão:** senhas e portas ficam em `.env`, que está no `.gitignore`. O repositório versiona só o `.env.example`, sem senhas. O compose usa `${VAR:?mensagem}` e recusa subir se a senha não estiver definida.
 
-**Consequência:** o compose não expõe segredos e o padrão é o mesmo usado em projetos reais.
+**Consequência:** o compose não expõe segredos, e o padrão é o mesmo usado em projetos reais.
+
+---
+
+## D8 — Dados de exemplo em SQL, fora das migrations
+
+**Contexto:** para aplicar a V2 sobre um banco com dados, era preciso uma massa de teste.
+
+**Decisão:** gerar os dados com `generate_series` num script SQL (`scripts/dados_exemplo.sql`), executado sob demanda. Dados fixos do negócio (planos, publicações e cupons) ficam nas migrations; dados de teste, não.
+
+**Consequência:** um banco novo sobe com o catálogo, mas sem assinantes falsos. O script começa com `TRUNCATE` e pode ser executado quantas vezes for preciso, sem dependência de outra linguagem. A limpeza e a carga ficam em uma única transação (`BEGIN`/`COMMIT`); um erro desfaz as mudanças ao encerrar a conexão.
+
+---
+
+## D9 — Backup lógico com `pg_dump` no formato custom
+
+**Contexto:** o projeto precisava mostrar que o banco pode ser salvo e recuperado.
+
+**Decisão:** backup com `pg_dump -Fc` executado **dentro** do container, para a versão da ferramenta sempre bater com a do servidor. O restore é testado num banco separado (`pauta_restore`) e conferido por contagem e por uma impressão digital (`md5`) do conteúdo. Os dumps ficam em `backups/`, fora do git.
+
+**Consequência:** o backup é validado, não só gerado. O histórico do Flyway viaja junto, então o banco restaurado continua da mesma versão de migration.
