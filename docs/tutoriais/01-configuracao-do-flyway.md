@@ -2,7 +2,7 @@
 
 Primeira etapa da v0.3.0: colocar o Flyway para rodar junto com o Postgres, aplicando as migrations da pasta `migrations/`.
 
-Itens da [checklist](../checklist.md) cobertos aqui:
+Esta etapa cobre:
 
 - Adicionar o serviço `flyway` ao compose, com versão fixa e `depends_on: service_healthy`
 - Criar a pasta `migrations/` e montá-la no container do Flyway
@@ -175,4 +175,4 @@ A extensão `pg_stat_statements`, criada pelo `initdb/` no `public`, não impedi
 
 ## Próxima etapa
 
-A primeira migration (`V1__schema_inicial.sql`), a convenção de nomes do Flyway e a fixação da versão da imagem estão em [02 — Primeira migration (V1)](02%20-%20migration.md).
+A primeira migration (`V1__schema_inicial.sql`), a convenção de nomes do Flyway e a fixação da versão da imagem estão em [02 — Primeira migration (V1)](02-schema-inicial.md).

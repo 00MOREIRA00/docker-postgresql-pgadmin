@@ -1,8 +1,8 @@
 # 02 — Primeira migration (V1)
 
-Com o Flyway rodando (ver [01 — Flyway no compose](01%20-%20inicial.md)), esta etapa fixa a versão da imagem e cria a primeira migration de verdade: a extensão `citext`, os tipos ENUM, as tabelas, as constraints, o índice único parcial e a carga dos dados fixos.
+Com o Flyway rodando (ver [01 — Flyway no compose](01-configuracao-do-flyway.md)), esta etapa fixa a versão da imagem e cria a primeira migration de verdade: a extensão `citext`, os tipos ENUM, as tabelas, as constraints, o índice único parcial e a carga dos dados fixos.
 
-Itens da [checklist](../checklist.md) fechados aqui:
+Esta etapa cobre:
 
 - Flyway: versão fixa da imagem
 - Flyway: `docker compose up` aplica as migrations e encerra com código 0
@@ -66,7 +66,7 @@ Se a extensão já existir, o comando não faz nada em vez de dar erro. É o mes
 
 ### O V1 vai crescer
 
-O V1 é o schema inicial inteiro. Os próximos itens da checklist (ENUMs, tabelas, constraints, índice parcial, carga de planos e publicações) entram **neste mesmo arquivo**, abaixo da extensão.
+O V1 é o schema inicial inteiro. Os demais componentes (ENUMs, tabelas, constraints, índice parcial, carga de planos e publicações) entram **neste mesmo arquivo**, abaixo da extensão.
 
 ---
 
@@ -377,7 +377,7 @@ Cada linha segue o padrão `nome_da_coluna  tipo  regras`:
 - **`id` e `codigo`:** o `id` é técnico, usado nas FKs. O `codigo` (ex.: `essencial`, `completo_anual`) é legível e fixo, bom para usar em consultas e no seed sem depender do número que o banco gerou.
 - **`periodicidade periodicidade`:** a coluna tem o mesmo nome do ENUM. É o primeiro uso de um tipo criado na seção anterior.
 - **`preco_centavos integer`:** dinheiro em centavos, nunca em `float` (decisão **D6** em [decisoes.md](../decisoes.md)). R$ 19,90 vira `1990`.
-- **`CHECK (preco_centavos >= 0)`:** é a constraint "de valores" da checklist. Preço negativo não existe.
+- **`CHECK (preco_centavos >= 0)`:** é a constraint "de valores". Preço negativo não existe.
 - **`max_perfis` com `DEFAULT 1` e `CHECK (>= 1)`:** a maioria dos planos tem 1 perfil (só o Família tem até 4), e nenhum plano pode ter zero.
 - **`ativo`:** permite tirar um plano de venda sem apagá-lo. Apagar quebraria as assinaturas antigas que apontam para ele.
 
@@ -981,6 +981,6 @@ Elas confirmam que as regras **existem**, não que **funcionam**. O `CHECK` de c
 
 ## Próximo passo
 
-A Migration V1 está completa. Para fechar a v0.3.0 na [checklist](../checklist.md), faltam: confirmar que tudo sobe do zero (`docker compose down -v && docker compose up -d`), atualizar o README e o modelo de dados com o novo escopo e publicar a release.
+A Migration V1 está completa. Para fechar a v0.3.0, faltam: confirmar que tudo sobe do zero (`docker compose down -v && docker compose up -d`), atualizar o README e o modelo de dados com o novo escopo e publicar a release.
 
 Depois vem a v0.4.0: gerar dados de exemplo em SQL e criar a `V2__cupons.sql`, aplicando-a num banco **com dados**, sem `down -v`.

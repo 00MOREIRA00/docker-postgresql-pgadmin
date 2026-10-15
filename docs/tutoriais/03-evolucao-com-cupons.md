@@ -1,10 +1,10 @@
 # 03 — Evoluir o schema com dados
 
-Até aqui, toda mudança no banco foi feita **editando o V1 e apagando o banco** com `docker compose down -v` (ver [02 — Primeira migration (V1)](02%20-%20migration.md)). Isso só funciona porque o banco ainda era descartável.
+Até aqui, toda mudança no banco foi feita **editando o V1 e apagando o banco** com `docker compose down -v` (ver [02 — Primeira migration (V1)](02-schema-inicial.md)). Isso só funciona porque o banco ainda era descartável.
 
 Esta etapa faz o contrário: muda o schema de um banco que **já tem dados**, sem apagar nada. É para isso que o Flyway existe.
 
-Itens da [checklist](../checklist.md) (v0.4.0):
+Esta etapa cobre:
 
 - Script `scripts/dados_exemplo.sql` com `generate_series`: assinantes e assinaturas de exemplo
 - Migration `V2__cupons.sql`: tabela `cupons` e coluna `cupom_id` em `assinaturas`
@@ -37,7 +37,7 @@ Nenhuma constraint reclamou, mas os dados contradiziam o [caso de negócio](../c
 | `trial` | Podia ter começado há 2 anos | O trial dura 7 dias: só quem entrou na última semana está em trial |
 | `ativa` | `periodo_fim` quase sempre no passado | Se está ativa, o ciclo atual ainda não venceu |
 
-É o mesmo tipo de problema da seção 6 do [02](02%20-%20migration.md): o banco só barra o que tem regra para barrar.
+É o mesmo tipo de problema da seção 6 do [02](02-schema-inicial.md): o banco só barra o que tem regra para barrar.
 
 ### A lógica nova
 
@@ -403,4 +403,4 @@ Entre um teste e outro, os containers foram removidos com `docker compose down` 
 
 ## Próximo passo
 
-Os itens da v0.4.0 estão concluídos na [checklist](../checklist.md), e a [release v0.4.0](https://github.com/00MOREIRA00/docker-postgresql-pgadmin/releases/tag/v0.4.0) está publicada. O README e o [modelo de dados](../modelo-de-dados.md) descrevem a V2. A próxima etapa é [backup e restore](04%20-%20backup%20e%20restore.md); a publicação da v1.0.0 permanece pendente.
+A [release v0.4.0](https://github.com/00MOREIRA00/docker-postgresql-pgadmin/releases/tag/v0.4.0) está publicada. O README e o [modelo de dados](../modelo-de-dados.md) descrevem a V2. A próxima etapa é [backup e restore](04-backup-e-restore.md); a publicação da v1.0.0 permanece pendente.

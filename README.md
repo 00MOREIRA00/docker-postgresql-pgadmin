@@ -1,4 +1,4 @@
-# Pauta Digital — PostgreSQL com Docker e Flyway
+# docker-postgresql-pgadmin
 
 > Laboratório de PostgreSQL com Docker baseado em um caso de negócio fictício: a **Pauta Digital**, uma plataforma de revistas e newsletters por assinatura.
 
@@ -55,8 +55,7 @@ Por que essas escolhas: [docs/decisoes.md](docs/decisoes.md).
     ├── caso-de-negocio.md
     ├── modelo-de-dados.md
     ├── decisoes.md
-    ├── checklist.md          # plano de trabalho por versão
-    └── criando/              # passo a passo de cada etapa, com os problemas encontrados
+    └── tutoriais/            # passo a passo de cada etapa, com os problemas encontrados
 ```
 
 ## Como rodar
@@ -235,7 +234,7 @@ Compare as duas saídas, com os mesmos limites de conferência descritos acima. 
 | Massa de teste com `generate_series` | `scripts/dados_exemplo.sql` |
 | Backup e restore com `pg_dump` / `pg_restore`, conferidos por impressão digital | [Backup e restore](#backup-e-restore) |
 
-O passo a passo de cada etapa, com os erros que apareceram e como foram resolvidos, está em [docs/criando/](docs/criando/).
+O passo a passo de cada etapa, com os erros que apareceram e como foram resolvidos, está em [docs/tutoriais/](docs/tutoriais/).
 
 ## Roadmap
 
@@ -246,7 +245,6 @@ O passo a passo de cada etapa, com os erros que apareceram e como foram resolvid
 - [x] Backup e restore
 - [x] README final
 
-Detalhes de cada versão: [docs/checklist.md](docs/checklist.md).
 
 ## Aviso
 

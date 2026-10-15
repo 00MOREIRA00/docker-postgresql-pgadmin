@@ -1,10 +1,10 @@
 # 04 — Backup e restore
 
-Com o schema evoluindo sem perder dados (ver [03 — Evoluir o schema com dados](03%20-%20evoluir%20o%20schema.md)), falta a última garantia: conseguir **salvar o banco e recuperá-lo**.
+Com o schema evoluindo sem perder dados (ver [03 — Evoluir o schema com dados](03-evolucao-com-cupons.md)), falta a última garantia: conseguir **salvar o banco e recuperá-lo**.
 
 Um backup só vale alguma coisa se o restore funcionar. Por isso esta etapa não termina no `pg_dump`: o backup é restaurado num banco novo e comparado com o original.
 
-Itens da [checklist](../checklist.md) (v1.0.0):
+Esta etapa cobre:
 
 - Backup do banco com `pg_dump`
 - Restore num banco limpo com `pg_restore` e conferir os dados
@@ -202,4 +202,4 @@ O arquivo em `backups/` fica na máquina, fora do git.
 
 Para executar backup e restore no Windows PowerShell sem redirecionar bytes binários, consulte a alternativa com `pg_dump -f` e `docker compose cp` no [README](../../README.md#windows-powershell).
 
-Com o backup e o restore validados e o README atualizado, falta só a release v1.0.0 na [checklist](../checklist.md).
+Com o backup e o restore validados e o README atualizado, falta só a release v1.0.0.

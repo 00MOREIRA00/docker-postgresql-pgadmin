@@ -2,7 +2,7 @@
 
 Registro curto das escolhas de arquitetura e do motivo de cada uma, no formato de ADR (*Architecture Decision Record*) simplificado.
 
-A numeração é estável: uma decisão nunca muda de número, para não quebrar as referências nos documentos de [criando/](criando/). D3 e D4 foram descartadas quando o escopo do projeto foi reduzido.
+A numeração é estável: uma decisão nunca muda de número, para não quebrar as referências nos documentos de [tutoriais/](tutoriais/). D3 e D4 foram descartadas quando o escopo do projeto foi reduzido.
 
 ---
 
